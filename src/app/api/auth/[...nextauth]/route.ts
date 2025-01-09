@@ -1,14 +1,45 @@
-// Third-party Imports
+// src/app/api/auth/[...nextauth]/route.ts
+
 import NextAuth from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
 
-// Lib Imports
-import { authOptions } from '@/libs/auth'
+const handler = NextAuth({
+  providers: [
+    CredentialsProvider({
+      // Your provider configuration
+      async authorize(credentials) {
+        try {
+          const response = await fetch('/your-api-endpoint', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(credentials)
+          })
 
-/*
- * As we do not have backend server, the refresh token feature has not been incorporated into the template.
- * Please refer https://next-auth.js.org/tutorials/refresh-token-rotation link for a reference.
- */
+          if (!response.ok) {
+            throw new Error('Network response was not ok')
+          }
 
-const handler = NextAuth(authOptions)
+          const contentType = response.headers.get('content-type')
 
-export { handler as GET, handler as POST }
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON')
+          }
+
+          const data = await response.json()
+
+          // Process your data here
+          return data
+        } catch (error) {
+          console.error('Failed to fetch data:', error)
+          throw new Error('Failed to authenticate')
+        }
+      }
+    })
+  ]
+
+  // Other next-auth configurations
+})
+
+export const POST = handler
